@@ -1,57 +1,47 @@
-// Usturoi Flavius-Gabriel, 336CC
-// Tema 2 - Optimizari
+// Matrix multiplication optimizations
 
-ORGANIZARE:
+STRUCTURING:
+	The idea of my code to implement the project was to use the functions
+from BLAS Atlas to implement matrix multiplications in an efficient manner
+(with a complexity much better than O(n^3)), to apply the classic algorithm in O(n^3)
+for matrix multiplication (the non-optimized variant), as well as to improve this
+algorithm through pointer arithmetic and retaining variables in registers to
+obtain better execution times.
+	Also, the implementations do not have memory access problems,
+which can be confirmed by the content of the .memory files in the memory directory.
 
-	Ideea generala a codului meu in vederea rezolvarii temei a fost folosirea
-functiilor din BLAS Atlas pentru implementarea inmultirilor de matrice intr-o
-maniera eficienta (cu o complexitate mult mai buna decat O(n^3)), aplicarea
-clasicului algoritm in O(n^3) pentru inmultirea matricelor (varianta neoptimizata),
-precum si o imbunatatire a acestui algoritm prin aritmetica cu pointeri si reti-
-nerea variabilelor in registri pentru a obtine timpi de executie mai buni, notiuni
-care au fost deprinse la laborator.
-	De asemenea, implementarile nu prezinta probleme de acces la memorie, fapt
-ce poate fi confirmat de continutul fisierelor .memory din directorul memory.
-
-	Consider ca tema este utila, deoarece ne ajuta sa exploatam diferitele
-facilitati puse la dispozitie de limbajul C pentru a modela si eficientiza o
-problema prezenta pe scara larga in industrie.
-	Avand in vedere ca bonusul temei se acorda pentru un timp de executie de
-sub 8 secunde pentru varianta optimizata cand N = 1200, atunci evident puteam
-implementa mai bine aceasta varianta.
-
-IMPLEMENTARE:
-	1. BLAS: Am folosit doua functii (cblas_dgemm si cblas_dtrmm) si am lucrat direct
-cu cele 3 matrice, fara variabile auxiliare. Mai intai am realizat inmultirea B_t * B_t cu
-cblas_dgemm, stocand rezultatul in C. Apoi, am calculat A * B cu cblas_dtrmm si am scris
-rezultatul in B. In final, am calculat A * B * A_t (adica B * A_t) si am adunat rezultatul
+IMPLEMENTATIONS:
+	1. BLAS: I used two functions (cblas_dgemm and cblas_dtrmm) and worked directly
+with the 3 matrices, without auxiliary variables. First, I multiplied B_t * B_t with
+cblas_dgemm, storing the result in C. Then, I calculated A * B with cblas_dtrmm and wrote
+the result in B. Finally, I calculated A * B * A_t (i.e. B * A_t) and added the result
 in C.
-	2. Neopt: Initial, am obtinut transpusele matricelor A si B cu functia transpose().
-Apoi, am mers pe acelasi principiu ca in cazul variantei BLAS: nu am folosit variabile
-auxiliare, ci am stocat rezultatele temporare in matricele pe care le aveam la dispozitie,
-cu mentiunea ca in cazul inmultirilor in care apare matricea A, am profitat de faptul ca
-este o matrice superior triunghiulara.
-	3. Opt_m: Este fix implementarea algoritmului din cazul variantei Neopt, numai ca
-aici m-am folosit de resursele din laboratorul 5 de ASC si anume renuntarea la accesele
-vectoriale in schimbul dereferentierii pointerilor, precum si folosirea keyword-ului
-"register" unde este cazul.
+	2. Neopt: Initially, we obtained the transposes of matrices A and B with the
+transpose() function. Then, I followed the same principle as in the BLAS variant:
+I did not use auxiliary variables, but stored the temporary results in the matrices
+I had available, with the caveat that in the case of multiplications in which matrix A
+appears, I took advantage of the fact that it is an upper triangular matrix.
+	3. Opt_m: The same implementation as the Neopt algorithm, except that here I
+eliminated vector accesses in exchange for pointer dereferencing, as well as using
+the "register" keyword where appropriate.
 
-ANALIZA:
-	1. Cachegrind: I refs inseamna numarul de referinte de instructiuni, D refs
-numarul de referinte de date, iar Branches - numarul de instructini de salt executate.
-Asa cum ne asteptam, analizand fisierele .cache, observam ca valorile sunt mult mai
-mici in cazul variantei BLAS, numarul de branch-uri este aproximativ egal pentru
-variantele neopt si opt_m (cum am spus, este acelasi algoritm), iar valorile cele mai
-mari pentru I refs si D refs se obtin, evident, pentru varianta neopt.
-	Pentru opt_m obtinem valori mai mici, deoarece utilizam dereferentierea
-pointerilor in loc de accese vectoriale (operatia a[i][k] * b[k][j] necesitand
-patru adunari si doua inmultiri pentru a obtine adresele din a si b). De asemenea,
-c[i][j] este o constanta, iar pentru a nu face la fiecare iteratie doua adunari si o
-inmultire pentru a obtine adresa din c, vom aduna rezultatul a[i][k] * b[k][j]
-intr-un registru care la final va fi atribuit lui c[i][j].
-	2. Grafice: In arhiva temei se regasesc patru grafice: cate unul pentru
-fiecare din cele 3 implementari + un grafic ce inglobeaza toate cele 3 variante.
-Timpi de executie:
+ANALYSIS:
+	1. Cachegrind: I refs means the number of instruction references,
+D refs the number of data references, and Branches - the number of executed
+jump instructions. As we expected, analyzing the .cache files, we notice that
+the values are much smaller in the case of the BLAS variant, the number of
+branches is approximately equal for the neopt and opt_m variants (as I said,
+it is the same algorithm), and the highest values for I refs and D refs are
+obtained, obviously, for the neopt variant.
+	For opt_m we get smaller values, because we use pointer dereference
+instead of vector accesses (the operation a[i][k] * b[k][j] requiring four
+additions and two multiplications to obtain the addresses of a and b). Also,
+c[i][j] is a constant, and in order not to do two additions and one multiplication
+to obtain the address of c at each iteration, we will add the result of a[i][k] *
+b[k][j] into a register that will eventually be assigned to c[i][j].
+	2. Graphs: In the repo there are four graphs: one for each of the 3
+implementations + a graph that includes all 3 variants.
+Execution times:
 	BLAS				 Neopt				Opt_m
 N = 400  => T = 0.091296	N = 400  => T = 1.454513	N = 400  => T = 0.418508
 N = 800  => T = 0.370214	N = 800  => T = 12.063025	N = 800  => T = 3.728475
@@ -59,12 +49,7 @@ N = 1000 => T = 0.694926	N = 1000 => T = 22.201445	N = 1000 => T = 5.941914
 N = 1200 => T = 1.117271	N = 1200 => T = 40.991455	N = 1200 => T = 11.536547
 N = 1400 => T = 1.710957	N = 1400 => T = 73.134331	N = 1400 => T = 20.959955
 
-	Analizand timpii de rulare si "Comparison plot.png", observam ca BLAS aproape
-se suprapune cu axa orizontala (complexitate mult mai buna => timp de executie mult
-mai mic), pe cand Neopt si Opt_m au o crestere exponentiala cu cresterea lui N. Pe
-grafic realizam cat de ineficient poate fi un algoritm O(n^3).
-
-RESURSE UTILIZATE:
-	 - Documentatia BLAS Atlas: https://netlib.org/blas/
-	 - Laboratorul 5 de ASC: https://ocw.cs.pub.ro/courses/asc/laboratoare/05 (sectiunile
-"Detectarea constantelor din bucle" si "Accesul la vectori")
+	Analyzing the runtimes and "Comparison plot.png", we notice that BLAS almost
+overlaps the horizontal axis (much better complexity => much lower execution time),
+while Neopt and Opt_m have an exponential growth with increasing N. On the graph we
+realize how inefficient an O(n^3) algorithm can be.
