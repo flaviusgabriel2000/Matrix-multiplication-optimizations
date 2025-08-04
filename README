@@ -1,0 +1,70 @@
+// Usturoi Flavius-Gabriel, 336CC
+// Tema 2 - Optimizari
+
+ORGANIZARE:
+
+	Ideea generala a codului meu in vederea rezolvarii temei a fost folosirea
+functiilor din BLAS Atlas pentru implementarea inmultirilor de matrice intr-o
+maniera eficienta (cu o complexitate mult mai buna decat O(n^3)), aplicarea
+clasicului algoritm in O(n^3) pentru inmultirea matricelor (varianta neoptimizata),
+precum si o imbunatatire a acestui algoritm prin aritmetica cu pointeri si reti-
+nerea variabilelor in registri pentru a obtine timpi de executie mai buni, notiuni
+care au fost deprinse la laborator.
+	De asemenea, implementarile nu prezinta probleme de acces la memorie, fapt
+ce poate fi confirmat de continutul fisierelor .memory din directorul memory.
+
+	Consider ca tema este utila, deoarece ne ajuta sa exploatam diferitele
+facilitati puse la dispozitie de limbajul C pentru a modela si eficientiza o
+problema prezenta pe scara larga in industrie.
+	Avand in vedere ca bonusul temei se acorda pentru un timp de executie de
+sub 8 secunde pentru varianta optimizata cand N = 1200, atunci evident puteam
+implementa mai bine aceasta varianta.
+
+IMPLEMENTARE:
+	1. BLAS: Am folosit doua functii (cblas_dgemm si cblas_dtrmm) si am lucrat direct
+cu cele 3 matrice, fara variabile auxiliare. Mai intai am realizat inmultirea B_t * B_t cu
+cblas_dgemm, stocand rezultatul in C. Apoi, am calculat A * B cu cblas_dtrmm si am scris
+rezultatul in B. In final, am calculat A * B * A_t (adica B * A_t) si am adunat rezultatul
+in C.
+	2. Neopt: Initial, am obtinut transpusele matricelor A si B cu functia transpose().
+Apoi, am mers pe acelasi principiu ca in cazul variantei BLAS: nu am folosit variabile
+auxiliare, ci am stocat rezultatele temporare in matricele pe care le aveam la dispozitie,
+cu mentiunea ca in cazul inmultirilor in care apare matricea A, am profitat de faptul ca
+este o matrice superior triunghiulara.
+	3. Opt_m: Este fix implementarea algoritmului din cazul variantei Neopt, numai ca
+aici m-am folosit de resursele din laboratorul 5 de ASC si anume renuntarea la accesele
+vectoriale in schimbul dereferentierii pointerilor, precum si folosirea keyword-ului
+"register" unde este cazul.
+
+ANALIZA:
+	1. Cachegrind: I refs inseamna numarul de referinte de instructiuni, D refs
+numarul de referinte de date, iar Branches - numarul de instructini de salt executate.
+Asa cum ne asteptam, analizand fisierele .cache, observam ca valorile sunt mult mai
+mici in cazul variantei BLAS, numarul de branch-uri este aproximativ egal pentru
+variantele neopt si opt_m (cum am spus, este acelasi algoritm), iar valorile cele mai
+mari pentru I refs si D refs se obtin, evident, pentru varianta neopt.
+	Pentru opt_m obtinem valori mai mici, deoarece utilizam dereferentierea
+pointerilor in loc de accese vectoriale (operatia a[i][k] * b[k][j] necesitand
+patru adunari si doua inmultiri pentru a obtine adresele din a si b). De asemenea,
+c[i][j] este o constanta, iar pentru a nu face la fiecare iteratie doua adunari si o
+inmultire pentru a obtine adresa din c, vom aduna rezultatul a[i][k] * b[k][j]
+intr-un registru care la final va fi atribuit lui c[i][j].
+	2. Grafice: In arhiva temei se regasesc patru grafice: cate unul pentru
+fiecare din cele 3 implementari + un grafic ce inglobeaza toate cele 3 variante.
+Timpi de executie:
+	BLAS				 Neopt				Opt_m
+N = 400  => T = 0.091296	N = 400  => T = 1.454513	N = 400  => T = 0.418508
+N = 800  => T = 0.370214	N = 800  => T = 12.063025	N = 800  => T = 3.728475
+N = 1000 => T = 0.694926	N = 1000 => T = 22.201445	N = 1000 => T = 5.941914
+N = 1200 => T = 1.117271	N = 1200 => T = 40.991455	N = 1200 => T = 11.536547
+N = 1400 => T = 1.710957	N = 1400 => T = 73.134331	N = 1400 => T = 20.959955
+
+	Analizand timpii de rulare si "Comparison plot.png", observam ca BLAS aproape
+se suprapune cu axa orizontala (complexitate mult mai buna => timp de executie mult
+mai mic), pe cand Neopt si Opt_m au o crestere exponentiala cu cresterea lui N. Pe
+grafic realizam cat de ineficient poate fi un algoritm O(n^3).
+
+RESURSE UTILIZATE:
+	 - Documentatia BLAS Atlas: https://netlib.org/blas/
+	 - Laboratorul 5 de ASC: https://ocw.cs.pub.ro/courses/asc/laboratoare/05 (sectiunile
+"Detectarea constantelor din bucle" si "Accesul la vectori")
